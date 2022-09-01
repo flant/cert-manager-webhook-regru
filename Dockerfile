@@ -1,4 +1,4 @@
-FROM golang:1.18.3-alpine AS build_deps
+FROM golang:1.18.3-buster AS build_deps
 WORKDIR /src
 RUN apk add --no-cache git
 ENV GO111MODULE=on
