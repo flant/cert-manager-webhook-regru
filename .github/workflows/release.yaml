@@ -24,7 +24,7 @@ jobs:
       - name: Get versions
         id: get_versions
         run: |
-          echo ::set-output name=go_version::$(go mod edit -json | grep -Po '"Go":\s+"([0-9.]+)"' | sed -E 's/.+"([0-9.]+)"/\1/')
+          echo ::set-output name=go_version::$(go mod edit -json | grep Go | sed -E 's/.+"([0-9.]+)"/\1/' | sed 's/.$//')
           echo ::set-output name=build_version::${GITHUB_REF#refs/tags/v}
           echo ::set-output name=chart_version::${GITHUB_REF#refs/tags/}
       - name: Get last release
