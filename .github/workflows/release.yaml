@@ -33,7 +33,7 @@ jobs:
         id: last_release
         shell: bash
         run: |
-          sha=$(git show-ref --tags | grep $${{ steps.get-latest-tag.outputs.tag }} | awk '{print $1;}')
+          sha=$(git show-ref --tags | grep ${{ steps.get-latest-tag.outputs.tag }} | awk '{print $1;}')
           echo ::set-output name=sha::$sha
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
