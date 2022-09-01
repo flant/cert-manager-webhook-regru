@@ -1,0 +1,39 @@
+name: release
+
+on:
+  push:
+    tags:
+      - '**'
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18.3
+
+      - name: Build
+        run: |
+          for GOOS in linux; do
+            for GOARCH in amd64; do
+              echo "Building $GOOS-$GOARCH"
+              export GOOS=$GOOS
+              export GOARCH=$GOARCH
+              promu build -v --prefix=build
+              mv build/cluster-issuer-regru build/cluster-issuer-regru-${GOOS}-${GOARCH}
+            done
+          done
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
