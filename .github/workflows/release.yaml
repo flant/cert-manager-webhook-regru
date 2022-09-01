@@ -3,37 +3,83 @@ name: release
 on:
   push:
     tags:
-      - '**'
+      - 'v*.*.*'
+      - '!v0.1.*'
 
 jobs:
-
-  build:
+  base:
     runs-on: ubuntu-latest
-
+    outputs:
+      go_version: ${{ steps.get_versions.outputs.go_version }}
+      build_version: ${{ steps.get_versions.outputs.build_version }}
+      chart_version: ${{ steps.get_versions.outputs.chart_version }}
+      go_updated: ${{ steps.file_updates.outputs.go }}
+      yaml_updated: ${{ steps.file_updates.outputs.yaml }}
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Go
-        uses: actions/setup-go@v2
+      - name: Check out repo
+        uses: actions/checkout@v2
         with:
-          go-version: 1.18.3
+          fetch-depth: 0
 
-      - name: Build
+      - name: Get versions
+        id: get_versions
         run: |
-          for GOOS in linux; do
-            for GOARCH in amd64; do
-              echo "Building $GOOS-$GOARCH"
-              export GOOS=$GOOS
-              export GOARCH=$GOARCH
-              promu build -v --prefix=build
-              mv build/cluster-issuer-regru build/cluster-issuer-regru-${GOOS}-${GOARCH}
-            done
-          done
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
-            build/*
+          echo ::set-output name=go_version::$(go mod edit -json | grep -Po '"Go":\s+"([0-9.]+)"' | sed -E 's/.+"([0-9.]+)"/\1/')
+          echo ::set-output name=build_version::${GITHUB_REF#refs/tags/v}
+          echo ::set-output name=chart_version::${GITHUB_REF#refs/tags/}
+      - name: Get last release
+        id: last_release
+        shell: bash
+        run: |
+          tag=$(gh release list | sed -n '1 p' | awk '{print $(NF -1);}')
+          sha=$(git show-ref --tags | grep $tag | awk '{print $1;}')
+          echo ::set-output name=sha::$sha
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build:
+    needs: base
+    if: ${{ needs.base.outputs.go_updated == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      tag_commit: ${{ steps.update_image.outputs.commit }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v2
+
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          platforms: linux/amd64
+          target: image
+          push: true
+          build-args: GO_VERSION=${{ needs.base.outputs.go_version }}
+          tags: flant/cluster-issuer-regru:latest,flant/cluster-issuer-regru:${{ needs.base.outputs.build_version }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      # Temp fix
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
