@@ -26,14 +26,12 @@ jobs:
           echo ::set-output name=go_version::$(go mod edit -json | grep Go | sed -E 's/.+"([0-9.]+)"/\1/' | sed 's/.$//')
           echo ::set-output name=build_version::${GITHUB_REF#refs/tags/v}
 
-      - uses: actions-ecosystem/action-get-latest-tag@v1
-        id: get-latest-tag
-
       - name: Get last release
         id: last_release
         shell: bash
         run: |
-          sha=$(git show-ref --tags | grep ${{ steps.get-latest-tag.outputs.tag }} | awk '{print $1;}')
+          tag=$(git describe --abbrev=0)
+          sha=$(git show-ref --tags | grep $tag | awk '{print $1;}')
           echo ::set-output name=sha::$sha
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
