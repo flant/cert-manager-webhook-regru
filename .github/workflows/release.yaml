@@ -39,6 +39,7 @@ jobs:
           echo ::set-output name=sha::$sha
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARGS: "-av"
   build:
     needs: base
     if: ${{ needs.base.outputs.go_updated == 'true' }}
