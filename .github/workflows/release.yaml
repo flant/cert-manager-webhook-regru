@@ -33,8 +33,7 @@ jobs:
         id: last_release
         shell: bash
         run: |
-          tag=$(gh release list | sed -n '1 p' | awk '{print $(NF -1);}') > ./d.txt
-          cat ./d.txt
+          gh release list | sed -n '1 p' | awk '{print $(NF -1);}'
           sha=$(git show-ref --tags | grep $tag | awk '{print $1;}')
           echo ::set-output name=sha::$sha
         env:
