@@ -14,9 +14,6 @@ jobs:
     outputs:
       go_version: ${{ steps.get_versions.outputs.go_version }}
       build_version: ${{ steps.get_versions.outputs.build_version }}
-      chart_version: ${{ steps.get_versions.outputs.chart_version }}
-      go_updated: ${{ steps.file_updates.outputs.go }}
-      yaml_updated: ${{ steps.file_updates.outputs.yaml }}
     steps:
       - name: Check out repo
         uses: actions/checkout@v2
@@ -28,23 +25,22 @@ jobs:
         run: |
           echo ::set-output name=go_version::$(go mod edit -json | grep Go | sed -E 's/.+"([0-9.]+)"/\1/' | sed 's/.$//')
           echo ::set-output name=build_version::${GITHUB_REF#refs/tags/v}
-          echo ::set-output name=chart_version::${GITHUB_REF#refs/tags/}
+
+      - uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+
       - name: Get last release
         id: last_release
         shell: bash
         run: |
-          gh release list | sed -n '1 p' | awk '{print $(NF -1);}'
-          sha=$(git show-ref --tags | grep $tag | awk '{print $1;}')
+          sha=$(git show-ref --tags | grep $${{ steps.get-latest-tag.outputs.tag }} | awk '{print $1;}')
           echo ::set-output name=sha::$sha
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ARGS: "-av"
+
   build:
     needs: base
-    if: ${{ needs.base.outputs.go_updated == 'true' }}
     runs-on: ubuntu-latest
-    outputs:
-      tag_commit: ${{ steps.update_image.outputs.commit }}
     steps:
       - name: Check out repo
         uses: actions/checkout@v2
