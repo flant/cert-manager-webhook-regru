@@ -34,7 +34,6 @@ jobs:
         shell: bash
         run: |
           tag=$(gh release list | sed -n '1 p' | awk '{print $(NF -1);}')
-          echo $tag
           sha=$(git show-ref --tags | grep $tag | awk '{print $1;}')
           echo ::set-output name=sha::$sha
         env:
