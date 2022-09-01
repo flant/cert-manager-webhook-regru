@@ -9,7 +9,7 @@ FROM build_deps AS build
 COPY . .
 RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
 
-FROM alpine:3.9
+FROM debian:buster-slim
 RUN DEBIAN_FRONTEND=noninteractive; apt-get update && apt-get install ca-certificates
 COPY --from=build /src/webhook /usr/local/bin/webhook
 ENTRYPOINT ["webhook"]
