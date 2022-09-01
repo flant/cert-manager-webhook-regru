@@ -61,8 +61,8 @@ jobs:
           platforms: linux/amd64
           target: image
           push: true
-          build-args: GO_VERSION=${{ needs.base.outputs.go_version }}
-          tags: flant/cluster-issuer-regru:latest,flant/cluster-issuer-regru:${{ outputs.build_version }}
+          build-args: GO_VERSION=${{ build.outputs.go_version }}
+          tags: flant/cluster-issuer-regru:latest,flant/cluster-issuer-regru:${{ build.outputs.build_version }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
