@@ -56,7 +56,7 @@ func (c *regruDNSProviderSolver) Present(challengeRequest *v1alpha1.ChallengeReq
 	entry, domain := c.getDomainAndEntry(challengeRequest)
 	klog.Infof("present for entry=%s, domain=%s", entry, domain)
 
-	err = regruClient.createTXT(domain, challengeRequest.Key)
+	err = regruClient.createTXT(entry, challengeRequest.Key)
 	if err != nil {
 		return fmt.Errorf("unable to check TXT record: %v", err)
 	}
@@ -77,7 +77,7 @@ func (c *regruDNSProviderSolver) CleanUp(challengeRequest *v1alpha1.ChallengeReq
 	entry, domain := c.getDomainAndEntry(challengeRequest)
 	klog.Infof("present for entry=%s, domain=%s", entry, domain)
 
-	err = regruClient.deleteTXT(domain, challengeRequest.Key)
+	err = regruClient.deleteTXT(entry, challengeRequest.Key)
 	if err != nil {
 		return fmt.Errorf("unable to check TXT record: %v", err)
 	}
