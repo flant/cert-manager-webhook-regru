@@ -53,10 +53,9 @@ func (c *regruDNSProviderSolver) Present(challengeRequest *v1alpha1.ChallengeReq
 
 	regruClient := NewRegruCient(regru.username, regru.password, regru.zone)
 
-	entry, domain := c.getDomainAndEntry(challengeRequest)
-	klog.Infof("present for entry=%s, domain=%s", entry, domain)
+	klog.Infof("present for entry=%s, domain=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone)
 
-	err = regruClient.createTXT(entry, challengeRequest.Key)
+	err = regruClient.createTXT(challengeRequest.ResolvedZone, challengeRequest.Key)
 	if err != nil {
 		return fmt.Errorf("unable to check TXT record: %v", err)
 	}
@@ -74,10 +73,9 @@ func (c *regruDNSProviderSolver) CleanUp(challengeRequest *v1alpha1.ChallengeReq
 	klog.Infof("decoded configuration %v", cfg)
 
 	regruClient := NewRegruCient(regru.username, regru.password, regru.zone)
-	entry, domain := c.getDomainAndEntry(challengeRequest)
-	klog.Infof("present for entry=%s, domain=%s", entry, domain)
+	klog.Infof("present for entry=%s, domain=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone)
 
-	err = regruClient.deleteTXT(entry, challengeRequest.Key)
+	err = regruClient.deleteTXT(challengeRequest.ResolvedZone, challengeRequest.Key)
 	if err != nil {
 		return fmt.Errorf("unable to check TXT record: %v", err)
 	}
