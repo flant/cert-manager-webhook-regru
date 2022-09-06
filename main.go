@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"os"
-	"strings"
 )
 
 var (
@@ -53,9 +52,9 @@ func (c *regruDNSProviderSolver) Present(challengeRequest *v1alpha1.ChallengeReq
 
 	regruClient := NewRegruCient(regru.username, regru.password, regru.zone)
 
-	klog.Infof("present for entry=%s, domain=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone)
+	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone, challengeRequest.Key)
 
-	err = regruClient.createTXT(challengeRequest.ResolvedZone, challengeRequest.Key)
+	err = regruClient.createTXT(challengeRequest.ResolvedFQDN, challengeRequest.Key)
 	if err != nil {
 		return fmt.Errorf("unable to check TXT record: %v", err)
 	}
@@ -73,9 +72,9 @@ func (c *regruDNSProviderSolver) CleanUp(challengeRequest *v1alpha1.ChallengeReq
 	klog.Infof("decoded configuration %v", cfg)
 
 	regruClient := NewRegruCient(regru.username, regru.password, regru.zone)
-	klog.Infof("present for entry=%s, domain=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone)
+	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone, challengeRequest.Key)
 
-	err = regruClient.deleteTXT(challengeRequest.ResolvedZone, challengeRequest.Key)
+	err = regruClient.deleteTXT(challengeRequest.ResolvedFQDN, challengeRequest.Key)
 	if err != nil {
 		return fmt.Errorf("unable to check TXT record: %v", err)
 	}
@@ -91,14 +90,6 @@ func (c *regruDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, _ <-c
 	}
 	c.client = cl
 	return nil
-}
-
-func (c *regruDNSProviderSolver) getDomainAndEntry(challengeRequest *v1alpha1.ChallengeRequest) (string, string) {
-	entry := strings.TrimSuffix(challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone)
-	entry = strings.TrimSuffix(entry, ".")
-	domain := strings.TrimSuffix(challengeRequest.ResolvedZone, ".")
-	return entry, domain
-
 }
 
 func loadConfig(cfgJSON *extapi.JSON) (regruDNSProviderConfig, error) {
