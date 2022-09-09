@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"os"
+	"time"
 )
 
 var (
@@ -73,6 +74,10 @@ func (c *regruDNSProviderSolver) CleanUp(challengeRequest *v1alpha1.ChallengeReq
 
 	regruClient := NewRegruCient(regru.username, regru.password, regru.zone)
 	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone, challengeRequest.Key)
+
+	klog.Infof("Waiting for the deleteTXT function to start - %v\n", time.Now().Format(time.UnixDate))
+	<-time.After(20 * time.Minute)
+	klog.Infof("Run the deletXT function - %v\n", time.Now().Format(time.UnixDate))
 
 	err = regruClient.deleteTXT(challengeRequest.ResolvedFQDN, challengeRequest.Key)
 	if err != nil {
