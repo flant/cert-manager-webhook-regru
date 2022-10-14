@@ -36,7 +36,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: regru-password
-                  REGRU_PASSWORD: username
+                  key: REGRU_PASSWORD
             - name: REGRU_ZONE
               value: {{ .Values.issuer.zone }}
           ports:

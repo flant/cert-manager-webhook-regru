@@ -3,11 +3,38 @@
 This solver can be used when you want to use cert-manager with Regru API. API documentation is [here](https://www.reg.ru/reseller/api2doc).
 
 
+## Install cert-manager (optional step)
+If you need install cert-manager in your kubernetes cluster, you can use [command](https://cert-manager.io/docs/installation/) from official documentation.
 
+```shell
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
+```
 
-### ClusterIssuer
+## Install Webhook
+```shell
+git clone https://github.com/flant/clusterissuer-regru.git
+```
 
-Create a `ClusterIssuer` resource as following:
+You must edit file `values.yaml` in repository by specifying the fields `zone`, `image`, `user`, `password`, for example:
+```yaml
+issuer:
+  zone: my-domain-test.ru
+  image: ghcr.io/flant/cluster-issuer-regru:1.0.0
+  user: my_user@example.com
+  password: my_password
+```
+where `user` and `password` - are credentials for an authentication of the REG.RU
+
+You must complete commands for install webhook.
+
+```shell
+cd clusterissuer-regru
+helm install -n cert-manager regru-webhook ./helm
+```
+
+## Create ClusterIssuer
+
+Create the file  `ClusterIssuer.yaml` with the contents:
 ```yaml
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -31,9 +58,14 @@ spec:
             groupName: {{ .Values.groupName.name }}
             solverName: regru-dns
 ```
+and run command
+
+```shell
+kubectl create -f ClusterIssuer.yaml
+```
 
 ### Credentials
-In order to access the HTTP API, the webhook needs an user and a password.
+In order to access the HTTP API, the webhook needs `user` and `password`.
 
 If you choose another name for the secret than `regru-password`, ensure you modify the value of `regruPasswordSecretRef.name` in the `ClusterIssuer`.
 
@@ -48,9 +80,9 @@ data:
 type: Opaque
 ```
 
-### Create a certificate
+## Create a certificate
 
-Finally you can create certificates, for example:
+Create the file `certificate.yaml` with contetns:
 
 ```yaml
 apiVersion: cert-manager.io/v1
@@ -64,5 +96,5 @@ spec:
     name: regru-dns
     kind: ClusterIssuer
   dnsNames:
-    - example.com
+    -  *.my-domain-test.ru
 ```
