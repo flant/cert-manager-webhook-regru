@@ -1,0 +1,36 @@
+issuer:
+  zone: changeme
+  image: changeme
+  user: changeme
+  password: changeme
+
+groupName:
+  name: acme.regru.ru
+
+certManager:
+  namespace: d8-cert-manager
+  serviceAccountName: cert-manager
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 443
+
+webhook:
+  hostNetwork: true
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    memory: 256Mi
+
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
