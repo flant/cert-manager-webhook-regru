@@ -1,21 +1,30 @@
-# ClusterIssuer for Regru API
+# ClusterIssuer for the Regru API
 
-This solver can be used when you want to use cert-manager with Regru API. API documentation is [here](https://www.reg.ru/reseller/api2doc).
+### Motivation
 
+cert-manager automates the management and issuance of TLS certificates in Kubernetes clusters. It ensures that certificates are valid and updates them when necessary.
 
-## Install cert-manager (optional step)
-If you need install cert-manager in your kubernetes cluster, you can use [command](https://cert-manager.io/docs/installation/) from official documentation.
+A certificate authority resource, such as ClusterIssuer, must be declared in the cluster to start the certificate issuance procedure. It is used to generate signed certificates by honoring certificate signing requests.
+
+For some DNS providers, there are no predefined CusterIssuer resources. Fortunately, cert-manager allows you to write your own ClusterIssuer.
+
+This solver allows you to use cert-manager with the Regru API. Documentation on the Regru API is available [here](https://www.reg.ru/reseller/api2doc).
+
+# Usage
+
+### Install cert-manager (optional step)
+Use the following command from the [official documentation](https://cert-manager.io/docs/installation/) the install cert-manager in your Kubernetes cluster:
 
 ```shell
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
 ```
 
-## Install Webhook
+### Install the webhook
 ```shell
 git clone https://github.com/flant/clusterissuer-regru.git
 ```
 
-You must edit file `values.yaml` in repository by specifying the fields `zone`, `image`, `user`, `password`, for example:
+Edit the `values.yaml` file in the cloned repository and enter the appropriate values in the fields `zone`, `image`, `user`, `password`. Example:
 ```yaml
 issuer:
   zone: my-domain-test.ru
@@ -23,18 +32,18 @@ issuer:
   user: my_user@example.com
   password: my_password
 ```
-where `user` and `password` - are credentials for an authentication of the REG.RU
+Here, `user` and `password` are credentials you use to authenticate with REG.RU.
 
-You must complete commands for install webhook.
+Next, run the following commands for the install webhook.
 
 ```shell
 cd clusterissuer-regru
 helm install -n cert-manager regru-webhook ./helm
 ```
 
-## Create ClusterIssuer
+### Create a ClusterIssuer
 
-Create the file  `ClusterIssuer.yaml` with the contents:
+Create the `ClusterIssuer.yaml` file with the following contents:
 ```yaml
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -58,18 +67,19 @@ spec:
             groupName: {{ .Values.groupName.name }}
             solverName: regru-dns
 ```
-and run command
+and create the resource:
 
 ```shell
 kubectl create -f ClusterIssuer.yaml
 ```
 
-### Credentials
-In order to access the HTTP API, the webhook needs `user` and `password`.
+#### Credentials
 
-If you choose another name for the secret than `regru-password`, ensure you modify the value of `regruPasswordSecretRef.name` in the `ClusterIssuer`.
+You have to provide a `user` and `password` for the webhook so that it can access the HTTP API.
 
-The secret for the example above will look like this:
+Note that we use `regru-password` as the secret reference name in the `ClusterIssuer` example above. If you use a different name for the secret, make sure to edit the value of `regruPasswordSecretRef.name`.
+
+The secret for the above example would be as follows:
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -80,9 +90,9 @@ data:
 type: Opaque
 ```
 
-## Create a certificate
+### Create a certificate
 
-Create the file `certificate.yaml` with contetns:
+Create the `certificate.yaml` file with the following contents:
 
 ```yaml
 apiVersion: cert-manager.io/v1
@@ -98,3 +108,13 @@ spec:
   dnsNames:
     -  *.my-domain-test.ru
 ```
+
+# Community
+
+Please feel free to contact us if you have any questions.
+
+You're also welcome to follow [@flant_com](https://twitter.com/flant_com) to stay informed about all our Open Source initiatives.
+
+# License
+
+Apache License 2.0, see [LICENSE](LICENSE).
