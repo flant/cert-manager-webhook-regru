@@ -36,8 +36,7 @@ If you doesn't have access, you get an error:
    "result" : "error"
 }
 ```
-
-
+You need to add your IP(s) to the whitelist in your personal account.
 
 ### Install cert-manager (*optional step*)
 
