@@ -8,7 +8,7 @@ groupName:
   name: acme.regru.ru
 
 certManager:
-  namespace: d8-cert-manager
+  namespace: changeme
   serviceAccountName: cert-manager
 
 nameOverride: ""

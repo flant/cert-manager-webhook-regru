@@ -12,12 +12,43 @@ This solver allows you to use cert-manager with the Regru API. Documentation on 
 
 # Usage
 
-### Install cert-manager (optional step)
-Use the following command from the [official documentation](https://cert-manager.io/docs/installation/) the install cert-manager in your Kubernetes cluster:
+### Preparation
+
+You must check access to the Regru API from your IP(s). You should use this command:
 
 ```shell
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
+curl "https://api.reg.ru/api/regru2/zone/get_resource_records?input_data=%7B%22username%22%3A%22USER_NAME%22%2C%22password%22%3A%22PASSWORD_STRING%22%2C%22domains%22%3A%5B%7B%22dname%22%3A%22ZONE_NAME%22%7D%5D%2C%22output_content_type%22%3A%22plain%22%7D&input_format=json"
+
 ```
+where `USER_NAME` and `PASSWORD_STRING` are your credentials to access the Regru API, and `ZONE_NAME` is your domain.
+
+If you doesn't have access, you get an error:
+
+```
+{
+   "charset" : "utf-8",
+   "error_code" : "ACCESS_DENIED_FROM_IP",
+   "error_params" : {
+      "command_name" : "zone/get_resource_records"
+   },
+   "error_text" : "Access to API from this IP denied",
+   "messagestore" : null,
+   "result" : "error"
+}
+```
+You need to add your IP(s) to the whitelist in your personal account.
+
+### Install cert-manager (*optional step*)
+
+**ATTENTION!** You should not delete the cert-manager if you are already using it.
+
+
+Use the following command from the [official documentation](https://cert-manager.io/docs/installation/) to install cert-manager in your Kubernetes cluster:
+
+```shell
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/VERSION/cert-manager.yaml
+```
+*  where `VERSION` is necessary version (for example, v1.10.1 )
 
 ### Install the webhook
 ```shell
@@ -28,10 +59,19 @@ Edit the `values.yaml` file in the cloned repository and enter the appropriate v
 ```yaml
 issuer:
   zone: my-domain-test.ru
-  image: ghcr.io/flant/cluster-issuer-regru:1.0.0
+  image: ghcr.io/flant/cluster-issuer-regru:1.0.1
   user: my_user@example.com
   password: my_password
 ```
+
+You must also specify your namespace with the `cert-manager`.
+
+```yaml
+certManager:
+  namespace: my-namespace-cert-manager
+  serviceAccountName: cert-manager
+```
+
 Here, `user` and `password` are credentials you use to authenticate with REG.RU.
 
 Next, run the following commands for the install webhook.
