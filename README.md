@@ -52,7 +52,7 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
 
 ### Install the webhook
 ```shell
-git clone https://github.com/flant/clusterissuer-regru.git
+git clone https://github.com/flant/cert-manager-webhook-regru.git
 ```
 
 Edit the `values.yaml` file in the cloned repository and enter the appropriate values in the fields `zone`, `image`, `user`, `password`. Example:
@@ -77,8 +77,8 @@ Here, `user` and `password` are credentials you use to authenticate with REG.RU.
 Next, run the following commands for the install webhook.
 
 ```shell
-cd clusterissuer-regru
-helm install -n cert-manager regru-webhook ./helm
+cd cert-manager-webhook-regru
+helm install -n my-namespace-cert-manager regru-webhook ./helm
 ```
 
 ### Create a ClusterIssuer
