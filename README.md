@@ -58,7 +58,6 @@ git clone https://github.com/flant/cert-manager-webhook-regru.git
 Edit the `values.yaml` file in the cloned repository and enter the appropriate values in the fields `zone`, `image`, `user`, `password`. Example:
 ```yaml
 issuer:
-  zone: my-domain-test.ru
   image: ghcr.io/flant/cluster-issuer-regru:1.0.1
   user: my_user@example.com
   password: my_password
@@ -104,7 +103,8 @@ spec:
               regruPasswordSecretRef:
                 name: regru-password
                 key: REGRU_PASSWORD
-            groupName: {{ .Values.groupName.name }}
+            # groupName should be the same as `groupName.name` in `values.yaml` file.
+            groupName: acme.regru.ru
             solverName: regru-dns
 ```
 and create the resource:
@@ -114,6 +114,8 @@ kubectl create -f ClusterIssuer.yaml
 ```
 
 #### Credentials
+
+**This secret resource is automatically installed by helm chart. So you do not need to create manually.**
 
 You have to provide a `user` and `password` for the webhook so that it can access the HTTP API.
 
