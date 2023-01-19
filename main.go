@@ -50,9 +50,9 @@ func (c *regruDNSProviderSolver) Present(challengeRequest *v1alpha1.ChallengeReq
 
 	klog.Infof("decoded configuration %v", cfg)
 
-	regruClient := NewRegruClient(regru.username, regru.password, challengeRequest.ResolvedZone)
+	regruClient := NewRegruClient(regru.username, regru.password, getDomainFromZone(challengeRequest.ResolvedZone))
 
-	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone, challengeRequest.Key)
+	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, getDomainFromZone(challengeRequest.ResolvedZone), challengeRequest.Key)
 
 	err = regruClient.createTXT(challengeRequest.ResolvedFQDN, challengeRequest.Key)
 	if err != nil {
@@ -71,8 +71,8 @@ func (c *regruDNSProviderSolver) CleanUp(challengeRequest *v1alpha1.ChallengeReq
 
 	klog.Infof("decoded configuration %v", cfg)
 
-	regruClient := NewRegruClient(regru.username, regru.password, challengeRequest.ResolvedZone)
-	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone, challengeRequest.Key)
+	regruClient := NewRegruClient(regru.username, regru.password, getDomainFromZone(challengeRequest.ResolvedZone))
+	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, getDomainFromZone(challengeRequest.ResolvedZone), challengeRequest.Key)
 
 	err = regruClient.deleteTXT(challengeRequest.ResolvedFQDN, challengeRequest.Key)
 	if err != nil {
@@ -103,4 +103,9 @@ func loadConfig(cfgJSON *extapi.JSON) (regruDNSProviderConfig, error) {
 		return cfg, fmt.Errorf("error decoding solver config: %v", err)
 	}
 	return cfg, nil
+}
+
+// getDomainFromZone returns domain name from ResolvedZone without last dot.
+func getDomainFromZone(zone string) string {
+	return zone[0 : len(zone)-1]
 }
