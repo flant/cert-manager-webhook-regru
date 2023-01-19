@@ -17,7 +17,7 @@ type RegruClient struct {
 	zone     string
 }
 
-func NewRegruCient(username string, password string, zone string) *RegruClient {
+func NewRegruClient(username string, password string, zone string) *RegruClient {
 	return &RegruClient{
 		username: username,
 		password: password,

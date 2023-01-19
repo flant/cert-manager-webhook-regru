@@ -15,7 +15,7 @@ import (
 
 var (
 	GroupName = os.Getenv("GROUP_NAME")
-	regru     = RegruClient{os.Getenv("REGRU_USERNAME"), os.Getenv("REGRU_PASSWORD"), os.Getenv("REGRU_ZONE")}
+	regru     = RegruClient{os.Getenv("REGRU_USERNAME"), os.Getenv("REGRU_PASSWORD"), ""}
 )
 
 func main() {
@@ -50,7 +50,7 @@ func (c *regruDNSProviderSolver) Present(challengeRequest *v1alpha1.ChallengeReq
 
 	klog.Infof("decoded configuration %v", cfg)
 
-	regruClient := NewRegruCient(regru.username, regru.password, regru.zone)
+	regruClient := NewRegruClient(regru.username, regru.password, challengeRequest.ResolvedZone)
 
 	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone, challengeRequest.Key)
 
@@ -71,7 +71,7 @@ func (c *regruDNSProviderSolver) CleanUp(challengeRequest *v1alpha1.ChallengeReq
 
 	klog.Infof("decoded configuration %v", cfg)
 
-	regruClient := NewRegruCient(regru.username, regru.password, regru.zone)
+	regruClient := NewRegruClient(regru.username, regru.password, challengeRequest.ResolvedZone)
 	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, challengeRequest.ResolvedZone, challengeRequest.Key)
 
 	err = regruClient.deleteTXT(challengeRequest.ResolvedFQDN, challengeRequest.Key)
