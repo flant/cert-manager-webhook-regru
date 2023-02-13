@@ -1,4 +1,4 @@
-FROM golang:1.18.3-buster AS build_deps
+FROM golang:1.19.2-buster AS build_deps
 WORKDIR /src
 RUN DEBIAN_FRONTEND=noninteractive; apt-get update && apt-get install git -y
 ENV GO111MODULE=on

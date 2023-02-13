@@ -37,8 +37,6 @@ spec:
                 secretKeyRef:
                   name: regru-password
                   key: REGRU_PASSWORD
-            - name: REGRU_ZONE
-              value: {{ .Values.issuer.zone }}
           ports:
             - name: https
               containerPort: 443
