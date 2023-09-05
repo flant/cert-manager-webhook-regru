@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	"os"
 )
 
 const providerName = "regru-dns"
@@ -104,7 +106,9 @@ func (c *regruDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, _ <-c
 //	return cfg, nil
 //}
 
-// getDomainFromZone returns domain name from ResolvedZone without last dot.
+// getDomainFromZone returns second-level domain name from ResolvedZone without last dot.
+// reg.ru api requires to specify the second-level domain in the request
 func getDomainFromZone(zone string) string {
-	return zone[0 : len(zone)-1]
+	parts := strings.Split(zone[0:len(zone)-1], ".")
+	return parts[len(parts)-2] + "." + parts[len(parts)-1]
 }
