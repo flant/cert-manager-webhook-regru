@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
@@ -52,10 +51,16 @@ func (c *regruDNSProviderSolver) Present(challengeRequest *v1alpha1.ChallengeReq
 	//
 	//klog.Infof("decoded configuration %v", cfg)
 
-	regruClient := NewRegruClient(regru.username, regru.password, getDomainFromZone(challengeRequest.ResolvedZone))
+	zone, err := getDomainFromZone(challengeRequest.ResolvedZone, challengeRequest.ResolvedFQDN)
+	if err != nil {
+		return fmt.Errorf("unable to initialize reg.ru client, because unable to get root zone from domains: %w", err)
+	}
 
-	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, getDomainFromZone(challengeRequest.ResolvedZone), challengeRequest.Key)
+	klog.Infof("Using reg.ru client with username %s and zone %s", regru.username, zone)
 
+	regruClient := NewRegruClient(regru.username, regru.password, zone)
+
+	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, zone, challengeRequest.Key)
 	if err := regruClient.createTXT(challengeRequest.ResolvedFQDN, challengeRequest.Key); err != nil {
 		return fmt.Errorf("unable to create TXT record: %v", err)
 	}
@@ -73,8 +78,15 @@ func (c *regruDNSProviderSolver) CleanUp(challengeRequest *v1alpha1.ChallengeReq
 	//
 	//klog.Infof("decoded configuration %v", cfg)
 
-	regruClient := NewRegruClient(regru.username, regru.password, getDomainFromZone(challengeRequest.ResolvedZone))
-	klog.Infof("delete entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, getDomainFromZone(challengeRequest.ResolvedZone), challengeRequest.Key)
+	zone, err := getDomainFromZone(challengeRequest.ResolvedZone, challengeRequest.ResolvedFQDN)
+	if err != nil {
+		return fmt.Errorf("unable to initialize reg.ru client, because unable to get root zone from domains: %w", err)
+	}
+
+	klog.Infof("Using reg.ru client with username %s and zone %s", regru.username, zone)
+
+	regruClient := NewRegruClient(regru.username, regru.password, zone)
+	klog.Infof("delete entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, zone, challengeRequest.Key)
 
 	if err := regruClient.deleteTXT(challengeRequest.ResolvedFQDN, challengeRequest.Key); err != nil {
 		return fmt.Errorf("unable to delete TXT record: %v", err)
@@ -105,10 +117,3 @@ func (c *regruDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, _ <-c
 //	}
 //	return cfg, nil
 //}
-
-// getDomainFromZone returns second-level domain name from ResolvedZone without last dot.
-// reg.ru api requires to specify the second-level domain in the request
-func getDomainFromZone(zone string) string {
-	parts := strings.Split(zone[0:len(zone)-1], ".")
-	return parts[len(parts)-2] + "." + parts[len(parts)-1]
-}
