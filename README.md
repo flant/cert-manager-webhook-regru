@@ -160,3 +160,26 @@ You're also welcome to follow [@flant_com](https://twitter.com/flant_com) to sta
 # License
 
 Apache License 2.0, see [LICENSE](LICENSE).
+
+
+# Bugs
+
+```
+W1201 18:20:45.326454       1 warnings.go:70] flowcontrol.apiserver.k8s.io/v1beta3 FlowSchema is deprecated in v1.29+, unavailable in v1.32+; use flowcontrol.apiserver.k8s.io/v1 FlowSchema
+W1201 18:20:45.329083       1 warnings.go:70] flowcontrol.apiserver.k8s.io/v1beta3 PriorityLevelConfiguration is deprecated in v1.29+, unavailable in v1.32+; use flowcontrol.apiserver.k8s.io/v1 PriorityLevelConfiguration
+W1201 18:20:45.330745       1 warnings.go:70] flowcontrol.apiserver.k8s.io/v1beta3 FlowSchema is deprecated in v1.29+, unavailable in v1.32+; use flowcontrol.apiserver.k8s.io/v1 FlowSchema
+W1201 18:20:45.332271       1 warnings.go:70] flowcontrol.apiserver.k8s.io/v1beta3 PriorityLevelConfiguration is deprecated in v1.29+, unavailable in v1.32+; use flowcontrol.apiserver.k8s.io/v1 PriorityLevelConfiguration
+```
+
+Временное решение добавит в темплэйт rbac ClusterRole дополнительно
+
+```
+  - apiGroups:
+      - "flowcontrol.apiserver.k8s.io"
+    resources:
+      - 'prioritylevelconfigurations'
+      - 'flowschemas'
+    verbs:
+      - 'list'
+      - 'watch'
+```
