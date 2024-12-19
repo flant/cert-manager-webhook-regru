@@ -1,14 +1,12 @@
-FROM golang:1.19.2-buster AS build_deps
+FROM docker.io/library/golang:1.23-alpine AS build_deps
 WORKDIR /src
-RUN DEBIAN_FRONTEND=noninteractive; apt-get update && apt-get install git -y
-ENV GO111MODULE=on
 COPY . .
-RUN ls -la /src
 RUN go mod download
-RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+RUN go get -u golang.org/x/crypto@v0.31.0 # Fix https://avd.aquasec.com/nvd/cve-2024-45337
+RUN go get -u golang.org/x/net@0.33.0 # https://avd.aquasec.com/nvd/cve-2024-45338
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o webhook -ldflags '-w -s -extldflags "-static"' .
 
-
-FROM debian:buster-slim
-RUN DEBIAN_FRONTEND=noninteractive; apt-get update && apt-get install ca-certificates -y
-COPY --from=build_deps /src/webhook /usr/local/bin/webhook
-ENTRYPOINT ["webhook"]
+FROM gcr.io/distroless/static-debian12:latest
+COPY --from=build_deps /src/webhook /bin/webhook
+USER nonroot
+ENTRYPOINT ["/bin/webhook"]
