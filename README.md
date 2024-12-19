@@ -48,7 +48,7 @@ Use the following command from the [official documentation](https://cert-manager
 ```shell
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/VERSION/cert-manager.yaml
 ```
-*  where `VERSION` is necessary version (for example, v1.10.1 )
+*  where `VERSION` is necessary version (for example, v1.15.4 )
 
 ### Install the webhook
 ```shell
@@ -58,7 +58,7 @@ git clone https://github.com/flant/cert-manager-webhook-regru.git
 Edit the `values.yaml` file in the cloned repository and enter the appropriate values in the fields `zone`, `image`, `user`, `password`. Example:
 ```yaml
 issuer:
-  image: ghcr.io/flant/cluster-issuer-regru:1.0.1
+  image: ghcr.io/flant/cluster-issuer-regru:1.2.0
   user: my_user@example.com
   password: my_password
 ```
