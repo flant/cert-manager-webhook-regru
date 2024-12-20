@@ -1,14 +1,16 @@
-FROM golang:1.19.2-buster AS build_deps
+# https://hub.docker.com/_/golang
+FROM docker.io/library/golang:1.23.4-alpine AS build_deps
+ARG GOOS=linux
+ARG GOARCH=amd64
+ENV GOOS=${GOOS}
+ENV GOARCH=${GOARCH}
 WORKDIR /src
-RUN DEBIAN_FRONTEND=noninteractive; apt-get update && apt-get install git -y
-ENV GO111MODULE=on
 COPY . .
-RUN ls -la /src
 RUN go mod download
-RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -s -extldflags "-static"' .
 
-
-FROM debian:buster-slim
-RUN DEBIAN_FRONTEND=noninteractive; apt-get update && apt-get install ca-certificates -y
-COPY --from=build_deps /src/webhook /usr/local/bin/webhook
-ENTRYPOINT ["webhook"]
+# https://github.com/GoogleContainerTools/distroless
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build_deps /src/webhook /bin/webhook
+USER nonroot
+ENTRYPOINT ["/bin/webhook"]

@@ -1,0 +1,12 @@
+# Self
+.dockerignore
+Dockerfile
+
+# .git .github .gitignore
+.git*
+
+# helm
+helm
+
+README.md
+LICENSE

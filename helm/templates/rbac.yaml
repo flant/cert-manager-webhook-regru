@@ -128,3 +128,44 @@ subjects:
     kind: ServiceAccount
     name: {{ .Values.certManager.serviceAccountName }}
     namespace: {{ .Values.certManager.namespace }}
+{{- if .Values.clusterRoleApiGroups.flowControlResources }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "cert-manager-webhook-regru.fullname" . }}:flowcontrol
+  labels:
+    app: {{ include "cert-manager-webhook-regru.name" . }}
+    chart: {{ include "cert-manager-webhook-regru.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+rules:
+  - apiGroups:
+    - flowcontrol.apiserver.k8s.io
+    resources:
+    - flowschemas
+    - prioritylevelconfigurations
+    verbs:
+    - get
+    - watch
+    - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "cert-manager-webhook-regru.fullname" . }}:flowcontrol
+  labels:
+    app: {{ include "cert-manager-webhook-regru.name" . }}
+    chart: {{ include "cert-manager-webhook-regru.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "cert-manager-webhook-regru.fullname" . }}:flowcontrol
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: {{ include "cert-manager-webhook-regru.fullname" . }}
+    namespace: {{ .Release.Namespace | quote }}
+{{- end }}
