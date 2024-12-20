@@ -1,11 +1,12 @@
 package main
 
 import (
-	"errors"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
-	url2 "net/url"
 )
 
 const (
@@ -27,73 +28,74 @@ func NewRegruClient(username string, password string, zone string) *RegruClient 
 }
 
 func (c *RegruClient) getRecords() error {
-	s := fmt.Sprintf("{\"username\":\"%s\",\"password\":\"%s\",\"domains\":[{\"dname\":\"%s\"}],\"output_content_type\":\"plain\"}", c.username, c.password, c.zone)
-	url := fmt.Sprintf("%szone/get_resource_records?input_data=%s&input_format=json", defaultBaseURL, url2.QueryEscape(s))
-
-	fmt.Println("Get TXT Query:", url)
-	res, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("failed to make GET request: %v", err)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
-	if res.StatusCode > 299 {
-		return errors.New(fmt.Sprintf("response failed with status code: %d and body: %s", res.StatusCode, body))
-	}
-	if err != nil {
-		return fmt.Errorf("failed to ready response")
-	}
-
-	fmt.Printf("Get TXT success. Response body: %s", body)
-
-	return nil
+	apiURL := fmt.Sprintf("%szone/get_resource_records", defaultBaseURL)
+	inputData := fmt.Sprintf("{\"domains\":[{\"dname\":\"%s\"}],\"password\":\"%s\",\"username\":\"%s\"}", c.zone, c.password, c.username)
+	return sendPOST(apiURL, inputData, *c)
 }
 
 func (c *RegruClient) createTXT(domain string, value string) error {
-	s := fmt.Sprintf("{\"username\":\"%s\",\"password\":\"%s\",\"domains\":[{\"dname\":\"%s\"}],\"subdomain\":\"%s\",\"text\":\"%s\",\"output_content_type\":\"plain\"}", c.username, c.password, c.zone, domain, value)
-	url := fmt.Sprintf("%szone/add_txt?input_data=%s&input_format=json", defaultBaseURL, url2.QueryEscape(s))
-
-	fmt.Println("Create TXT Query:", url)
-	res, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("failed to make GET request: %v", err)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
-	if res.StatusCode > 299 {
-		return errors.New(fmt.Sprintf("response failed with status code: %d and body: %s", res.StatusCode, body))
-	}
-	if err != nil {
-		return fmt.Errorf("failed to ready response")
-	}
-
-	fmt.Printf("Create TXT success. Response body: %s", body)
-
-	return nil
+	apiURL := fmt.Sprintf("%szone/add_txt", defaultBaseURL)
+	inputData := fmt.Sprintf("{\"domains\":[{\"dname\":\"%s\"}],\"password\":\"%s\",\"subdomain\":\"%s\",\"text\":\"%s\",\"username\":\"%s\"}", c.zone, c.password, domain, value, c.username)
+	return sendPOST(apiURL, inputData, *c)
 }
 
 func (c *RegruClient) deleteTXT(domain string, value string) error {
-	s := fmt.Sprintf("{\"username\":\"%s\",\"password\":\"%s\",\"domains\":[{\"dname\":\"%s\"}],\"subdomain\":\"%s\",\"content\":\"%s\",\"record_type\":\"TXT\",\"output_content_type\":\"plain\"}", c.username, c.password, c.zone, domain, value)
-	url := fmt.Sprintf("%szone/remove_record?input_data=%s&input_format=json", defaultBaseURL, url2.QueryEscape(s))
+	apiURL := fmt.Sprintf("%szone/remove_record", defaultBaseURL)
+	inputData := fmt.Sprintf("{\"content\":\"%s\",\"domains\":[{\"dname\":\"%s\"}],\"password\":\"%s\",\"record_type\":\"TXT\",\"subdomain\":\"%s\",\"username\":\"%s\"}", value, c.zone, c.password, domain, c.username)
+	return sendPOST(apiURL, inputData, *c)
+}
 
-	fmt.Println("Delete TXT Query:", url)
-	res, err := http.Get(url)
+func sendPOST(apiURL string, inputData string, c RegruClient) error {
+	var b bytes.Buffer
+	writer := multipart.NewWriter(&b)
 
+	writer.WriteField("input_format", "json")
+	writer.WriteField("output_format", "json")
+	writer.WriteField("io_encoding", "utf8")
+	writer.WriteField("input_data", inputData)
+	writer.WriteField("show_input_params", "0")
+	writer.WriteField("username", c.username)
+	writer.WriteField("password", c.password)
+	writer.Close()
+
+	// Perform the POST request
+	req, err := http.NewRequest("POST", apiURL, &b)
 	if err != nil {
-		return fmt.Errorf("failed to make GET request: %v", err)
+		return fmt.Errorf("failed to create request: %v", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// Perform the POST request
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to make POST request: %v", err)
+	}
+	defer res.Body.Close()
+
+	// Check for non-success status code
+	if res.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(res.Body) // Ignore error for brevity
+		return fmt.Errorf("response failed with status code: %d and body: %s", res.StatusCode, body)
 	}
 
+	// Read and output the response body
 	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
-	if res.StatusCode > 299 {
-		return errors.New(fmt.Sprintf("response failed with status code: %d and body: %s", res.StatusCode, body))
-	}
 	if err != nil {
-		return fmt.Errorf("failed to ready response")
+		return fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	fmt.Printf("Delete TXT success. Response body: %s", body)
+	// Print the response body as formatted JSON
+	var jsonResponse interface{}
+	if err := json.Unmarshal(body, &jsonResponse); err != nil {
+		return fmt.Errorf("failed to unmarshal response body: %v", err)
+	}
+
+	// Marshal the jsonResponse with indentation for pretty printing
+	prettyJSON, err := json.MarshalIndent(jsonResponse, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %v", err)
+	}
+
+	fmt.Printf("Response body: %s\n", prettyJSON)
 	return nil
 }

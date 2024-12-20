@@ -14,11 +14,18 @@ This solver allows you to use cert-manager with the Regru API. Documentation on 
 
 ### Preparation
 
-You must check access to the Regru API from your IP(s). You should use this command:
+You must check access to the Regru API from your IP(s). You should do POST request with ContentType `multipart/form-data;`:
 
-```shell
-curl "https://api.reg.ru/api/regru2/zone/get_resource_records?input_data=%7B%22username%22%3A%22USER_NAME%22%2C%22password%22%3A%22PASSWORD_STRING%22%2C%22domains%22%3A%5B%7B%22dname%22%3A%22ZONE_NAME%22%7D%5D%2C%22output_content_type%22%3A%22plain%22%7D&input_format=json"
+```http
+POST "https://www.reg.ru/api/regru2/zone/get_resource_records"
 
+input_format: json
+output_format: json
+io_encoding: utf8
+input_data: {"domains":[{"dname":"ZONE_NAME"}],"password":"PASSWORD","username":"USER_NAME"}
+show_input_params: 0
+username: USER_NAME
+password: PASSWORD
 ```
 where `USER_NAME` and `PASSWORD_STRING` are your credentials to access the Regru API, and `ZONE_NAME` is your domain.
 
