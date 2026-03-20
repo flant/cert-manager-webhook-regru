@@ -1,13 +1,7 @@
 # https://hub.docker.com/_/golang
 FROM docker.io/library/golang:1.25.3-alpine AS build
 
-ARG GOOS=linux
-
-ARG GOARCH=amd64
-
-ENV GOOS=${GOOS}
-
-ENV GOARCH=${GOARCH}
+ARG versionflags=""
 
 WORKDIR /src
 
