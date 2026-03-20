@@ -17,9 +17,6 @@ service:
   type: ClusterIP
   port: 443
 
-webhook:
-  hostNetwork: true
-
 resources:
   requests:
     cpu: 200m

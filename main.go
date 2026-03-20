@@ -1,114 +1,77 @@
 package main
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
-	"strings"
 
-	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
-	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/klog/v2"
+	"github.com/flant/cert-manager-webhook-regru/regru"
+	"github.com/go-logr/logr"
+	logsapi "k8s.io/component-base/logs/api/v1"
 )
 
-const providerName = "regru-dns"
+// appVersion is injected at build time via -ldflags "-X main.appVersion=<version>".
+var appVersion string
 
-var (
-	GroupName = os.Getenv("GROUP_NAME")
-	regru     = RegruClient{os.Getenv("REGRU_USERNAME"), os.Getenv("REGRU_PASSWORD"), ""}
-)
+// slogJSONFactory implements logsapi.LogFormatFactory to provide a structured JSON logger
+// based on the standard library slog package.
+type slogJSONFactory struct{}
+
+// Create returns a logr.Logger backed by slog's JSON handler, writing to the configured error stream.
+func (slogJSONFactory) Create(_ logsapi.LoggingConfiguration, o logsapi.LoggingOptions) (logr.Logger, logsapi.RuntimeControl) {
+	w := o.ErrorStream
+	if w == nil {
+		w = os.Stderr
+	}
+	handler := slog.NewJSONHandler(w, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
+	return logr.FromSlogHandler(handler), logsapi.RuntimeControl{
+		Flush: func() {},
+	}
+}
+
+func init() {
+	if err := logsapi.RegisterLogFormat("slog-json", slogJSONFactory{}, logsapi.LoggingStableOptions); err != nil {
+		panic(err)
+	}
+}
 
 func main() {
-	if GroupName == "" {
-		panic("GROUP_NAME must be specified")
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
+
+	version := appVersion
+	if version == "" {
+		version = "dev"
+	}
+	logger.Info("starting cert-manager-webhook-regru", "version", version)
+
+	groupName := os.Getenv("GROUP_NAME")
+	if groupName == "" {
+		logger.Error("GROUP_NAME environment variable is required")
+		os.Exit(1)
 	}
 
-	cmd.RunWebhookServer(GroupName,
-		&regruDNSProviderSolver{},
-	)
-
-}
-
-type regruDNSProviderSolver struct {
-	client *kubernetes.Clientset
-}
-
-type regruDNSProviderConfig struct {
-	RegruAPIPasswordSecretRef cmmeta.SecretKeySelector `json:"regruPasswordSecretRef"`
-}
-
-func (c *regruDNSProviderSolver) Name() string {
-	return providerName
-}
-
-func (c *regruDNSProviderSolver) Present(challengeRequest *v1alpha1.ChallengeRequest) error {
-	klog.Infof("Call function Present: namespace=%s, zone=%s, fqdn=%s", challengeRequest.ResourceNamespace, challengeRequest.ResolvedZone, challengeRequest.ResolvedFQDN)
-	//_, err := loadConfig(challengeRequest.Config)
-	//if err != nil {
-	//	return fmt.Errorf("unable to load config: %v", err)
-	//}
-	//
-	//klog.Infof("decoded configuration %v", cfg)
-
-	regruClient := NewRegruClient(regru.username, regru.password, getDomainFromZone(challengeRequest.ResolvedZone))
-
-	klog.Infof("present for entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, getDomainFromZone(challengeRequest.ResolvedZone), challengeRequest.Key)
-
-	if err := regruClient.createTXT(challengeRequest.ResolvedFQDN, challengeRequest.Key); err != nil {
-		return fmt.Errorf("unable to create TXT record: %v", err)
+	username := os.Getenv("REGRU_USERNAME")
+	if username == "" {
+		logger.Error("REGRU_USERNAME environment variable is required")
+		os.Exit(1)
 	}
 
-	return nil
-}
-
-func (c *regruDNSProviderSolver) CleanUp(challengeRequest *v1alpha1.ChallengeRequest) error {
-	klog.Infof("Call function CleanUp: namespace=%s, zone=%s, fqdn=%s",
-		challengeRequest.ResourceNamespace, challengeRequest.ResolvedZone, challengeRequest.ResolvedFQDN)
-	//cfg, err := loadConfig(challengeRequest.Config)
-	//if err != nil {
-	//	return fmt.Errorf("unable to load config: %v", err)
-	//}
-	//
-	//klog.Infof("decoded configuration %v", cfg)
-
-	regruClient := NewRegruClient(regru.username, regru.password, getDomainFromZone(challengeRequest.ResolvedZone))
-	klog.Infof("delete entry=%s, domain=%s, key=%s", challengeRequest.ResolvedFQDN, getDomainFromZone(challengeRequest.ResolvedZone), challengeRequest.Key)
-
-	if err := regruClient.deleteTXT(challengeRequest.ResolvedFQDN, challengeRequest.Key); err != nil {
-		return fmt.Errorf("unable to delete TXT record: %v", err)
+	password := os.Getenv("REGRU_PASSWORD")
+	if password == "" {
+		logger.Error("REGRU_PASSWORD environment variable is required")
+		os.Exit(1)
 	}
 
-	return nil
-}
+	os.Args = append(os.Args, "--logging-format=slog-json")
 
-func (c *regruDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, _ <-chan struct{}) error {
-	klog.Infof("call function Initialize")
-	cl, err := kubernetes.NewForConfig(kubeClientConfig)
-	if err != nil {
-		return fmt.Errorf("unable to get k8s client: %v", err)
-	}
-	c.client = cl
-	return nil
-}
+	regru.InitClient(username, password)
 
-//func loadConfig(cfgJSON *extapi.JSON) (regruDNSProviderConfig, error) {
-//	cfg := regruDNSProviderConfig{}
-//	if cfgJSON == nil {
-//		return cfg, nil
-//	}
-//
-//	if err := json.Unmarshal(cfgJSON.Raw, &cfg); err != nil {
-//		klog.Errorf("error decoding solver config: %v", err)
-//		return cfg, fmt.Errorf("error decoding solver config: %v", err)
-//	}
-//	return cfg, nil
-//}
+	logger.Info("running webhook server", "groupName", groupName)
 
-// getDomainFromZone returns second-level domain name from ResolvedZone without last dot.
-// reg.ru api requires to specify the second-level domain in the request
-func getDomainFromZone(zone string) string {
-	parts := strings.Split(zone[0:len(zone)-1], ".")
-	return parts[len(parts)-2] + "." + parts[len(parts)-1]
+	cmd.RunWebhookServer(groupName, &regru.Solver{})
 }
